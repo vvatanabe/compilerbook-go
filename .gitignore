@@ -1,2 +1,8 @@
+*~
+*.o
+tmp*
+a.out
+chibicc
+
 # idea
 .idea
