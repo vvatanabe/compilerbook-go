@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"unicode"
 )
 
 func main() {
@@ -12,17 +13,44 @@ func main() {
 		os.Exit(1)
 	}
 
+	i, s := strtol(os.Args[1], 10)
+
 	fmt.Printf(".intel_syntax noprefix\n")
-	fmt.Printf("  .globl main\n")
+	fmt.Printf(".globl main\n")
 	fmt.Printf("main:\n")
-	fmt.Printf("  mov rax, %d\n", atoi(os.Args[1]))
+	fmt.Printf("  mov rax, %d\n", i)
+
+	for s != "" {
+		switch []rune(s)[0] {
+		case '+':
+			s = s[1:]
+			i, s = strtol(s, 10)
+			fmt.Printf("  add rax, %d\n", i)
+			continue
+		case '-':
+			s = s[1:]
+			i, s = strtol(s, 10)
+			fmt.Printf("  sub rax, %d\n", i)
+			continue
+		default:
+			fmt.Fprintf(os.Stderr, "unexpected character: %c\n", []rune(s)[0])
+			os.Exit(1)
+		}
+	}
 	fmt.Printf("  ret\n")
 }
 
-func atoi(s string) int {
-	num, err := strconv.Atoi(os.Args[1])
-	if err != nil {
-		panic(err)
+func strtol(s string, b int) (int, string) {
+	if !unicode.IsDigit([]rune(s)[0]) {
+		return 0, s
 	}
-	return num
+	j := len(s)
+	for i, c := range s {
+		if !unicode.IsDigit(c) {
+			j = i
+			break
+		}
+	}
+	n, _ := strconv.ParseInt(s[:j], b, 32)
+	return int(n), s[j:]
 }
