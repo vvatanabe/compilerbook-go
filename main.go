@@ -39,6 +39,22 @@ func printError(format string, a ...interface{}) {
 	os.Exit(1)
 }
 
+var userInput string
+
+func printErrorAt(loc []rune, f string, r ...rune) {
+	p := len(loc) - len(userInput)
+	fmt.Fprintf(os.Stderr, "%s\n", userInput)
+	fmt.Fprintf(os.Stderr, "%*s", p, "") // print pos spaces.
+	fmt.Fprintf(os.Stderr, "^ ")
+	if len(r) == 0 {
+		fmt.Fprintf(os.Stderr, f)
+	} else {
+		fmt.Fprintf(os.Stderr, f, r[0])
+	}
+	fmt.Fprintln(os.Stderr)
+	os.Exit(1)
+}
+
 // Consumes the current token if it matches `op`.
 //
 // 次のトークンが期待している記号のときには、トークンを1つ読み進めて
@@ -57,7 +73,7 @@ func consume(op rune) bool {
 // それ以外の場合にはエラーを報告する。
 func expect(op rune) {
 	if token.Kind != TK_RESERVED || token.Str[0] != op {
-		printError("expected '%s'", string(op))
+		printErrorAt(token.Str, "expected '%c'", op)
 	}
 	token = token.Next
 }
@@ -65,7 +81,7 @@ func expect(op rune) {
 // // Ensure that the current token is TK_NUM.
 func expectNumber() int {
 	if token.Kind != TK_NUM {
-		printError("expected a number")
+		printErrorAt(token.Str, "expected a number")
 	}
 	val := token.Val
 	token = token.Next
@@ -88,8 +104,9 @@ func newToken(kind TokenKind, cur *Token, str []rune) *Token {
 	return tok
 }
 
-// Tokenize `p` and returns new tokens.
-func tokenize(p []rune) *Token {
+// Tokenize `user_input` and returns new tokens.
+func tokenize() *Token {
+	p := []rune(userInput)
 	var head Token
 	cur := &head
 
@@ -115,7 +132,7 @@ func tokenize(p []rune) *Token {
 			continue
 		}
 
-		printError("invalid token")
+		printErrorAt(p, "expected a number")
 	}
 	newToken(TK_EOF, cur, []rune{0})
 	return head.Next
@@ -126,8 +143,11 @@ func main() {
 		printError("%s: invalid number of arguments\n", os.Args[0])
 	}
 
+	s := os.Args[1]
+	userInput = s
+
 	// トークナイズする
-	token = tokenize([]rune(os.Args[1]))
+	token = tokenize()
 
 	// アセンブリの前半部分を出力
 	fmt.Printf(".intel_syntax noprefix\n")
